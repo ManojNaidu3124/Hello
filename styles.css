@@ -46,6 +46,7 @@ main { padding: 1.2rem 2rem 2rem; }
 .filter-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 160px auto;
+  grid-template-columns: 1fr 1fr 150px auto;
   gap: 0.75rem;
   align-items: end;
 }
@@ -76,6 +77,7 @@ select, input {
   font-size: 0.95rem;
   background: #fff;
 }
+select[multiple] { min-height: 95px; }
 
 .project-form { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem; }
 .form-grid {

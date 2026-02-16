@@ -51,6 +51,24 @@ function populateFilters() {
 
   renderCheckboxFilter("regionFilter", regions);
   renderCheckboxFilter("productFilter", products);
+  if (!raw) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(seedData));
+    return [...seedData];
+  }
+  return JSON.parse(raw);
+}
+
+function persistData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+}
+
+function uniqueValues(key) {
+  return [...new Set(state.data.map((d) => d[key]))].sort();
+}
+
+function populateFilters() {
+  fillMultiSelect("regionFilter", uniqueValues("region"));
+  fillMultiSelect("productFilter", uniqueValues("product"));
 
   const years = [...new Set(state.data.map((d) => Number(d.month.slice(0, 4))))].sort((a, b) => a - b);
   const yearFilter = document.getElementById("yearFilter");
@@ -80,6 +98,25 @@ function applyFilters(data, options = {}) {
     const productOK = productValues.length === 0 || productValues.includes(item.product);
     const yearOK = ignoreYear || year === "all" || String(item.month).startsWith(year);
     return regionOK && productOK && yearOK && Number(item.revenue) > 0;
+function fillMultiSelect(id, values) {
+  const el = document.getElementById(id);
+  el.innerHTML = values.map((v) => `<option value='${v}' selected>${v}</option>`).join("");
+}
+
+function getSelectedValues(id) {
+  return [...document.getElementById(id).selectedOptions].map((o) => o.value);
+}
+
+function filteredData() {
+  const selectedRegions = getSelectedValues("regionFilter");
+  const selectedProducts = getSelectedValues("productFilter");
+  const selectedYear = document.getElementById("yearFilter").value;
+
+  return state.data.filter((item) => {
+    const regionOK = selectedRegions.length === 0 || selectedRegions.includes(item.region);
+    const productOK = selectedProducts.length === 0 || selectedProducts.includes(item.product);
+    const yearOK = selectedYear === "all" || String(item.month).startsWith(selectedYear);
+    return regionOK && productOK && yearOK;
   });
 }
 
@@ -104,6 +141,12 @@ function computeQoQ(monthly) {
 
 function computeYoYForSelection(filteredIgnoringYear, selectedYear) {
   const byYear = filteredIgnoringYear.reduce((acc, d) => {
+function kpis(data) {
+  const totalRevenue = data.reduce((s, d) => s + d.revenue, 0);
+  const totalTarget = data.reduce((s, d) => s + d.target, 0);
+  const priceImpactAvg = data.length ? data.reduce((s, d) => s + d.priceImpact, 0) / data.length : 0;
+
+  const byYear = data.reduce((acc, d) => {
     const y = Number(d.month.slice(0, 4));
     acc[y] = (acc[y] || 0) + d.revenue;
     return acc;
@@ -149,6 +192,32 @@ function renderKPIs(filteredForView, filteredIgnoringYear, selectedYear) {
     ["Target Attainment", `${totalTarget ? ((totalRevenue / totalTarget) * 100).toFixed(1) : 0}%`],
     ["MoM Growth", growth === null ? "N/A" : `${growth.toFixed(2)}%`],
     ["YoY Growth", yoy === null ? "N/A" : `${yoy.toFixed(2)}%`],
+  const years = Object.keys(byYear).map(Number).sort((a, b) => a - b);
+  let yoy = 0;
+  if (years.length >= 2) {
+    const prev = byYear[years[years.length - 2]];
+    const curr = byYear[years[years.length - 1]];
+    yoy = prev ? ((curr - prev) / prev) * 100 : 0;
+  }
+
+  const monthly = groupByMonth(data);
+  let growth = 0;
+  if (monthly.length >= 2) {
+    const prev = monthly[monthly.length - 2][1];
+    const curr = monthly[monthly.length - 1][1];
+    growth = prev ? ((curr - prev) / prev) * 100 : 0;
+  }
+
+  return { totalRevenue, totalTarget, priceImpactAvg, yoy, growth };
+}
+
+function renderKPIs(data) {
+  const { totalRevenue, totalTarget, priceImpactAvg, yoy, growth } = kpis(data);
+  const cards = [
+    ["Total Revenue", `€ ${Math.round(totalRevenue).toLocaleString()}`],
+    ["Target Attainment", `${totalTarget ? ((totalRevenue / totalTarget) * 100).toFixed(1) : 0}%`],
+    ["MoM Growth", `${growth.toFixed(2)}%`],
+    ["YoY Growth", `${yoy.toFixed(2)}%`],
     ["Avg Price Impact", `${priceImpactAvg.toFixed(2)}%`]
   ];
 
@@ -267,6 +336,16 @@ function bindEvents() {
 
   document.getElementById("regionFilter").addEventListener("change", refreshDashboard);
   document.getElementById("productFilter").addEventListener("change", refreshDashboard);
+  const data = filteredData();
+  renderKPIs(data);
+  renderCharts(data);
+  renderTable(data);
+}
+
+function bindEvents() {
+  ["regionFilter", "productFilter", "yearFilter"].forEach((id) =>
+    document.getElementById(id).addEventListener("change", refreshDashboard)
+  );
 
   document.getElementById("resetFiltersBtn").addEventListener("click", () => {
     populateFilters();
@@ -286,6 +365,7 @@ function bindEvents() {
     };
 
     if (!entry.project || !entry.region || !entry.product || !entry.month || entry.revenue <= 0) return;
+    if (!entry.project || !entry.region || !entry.product || !entry.month) return;
 
     state.data.push(entry);
     persistData();
@@ -303,6 +383,8 @@ function downloadPdfReport() {
   const data = applyFilters(state.data);
   const dataIgnoreYear = applyFilters(state.data, { ignoreYear: true });
   const metrics = kpis(data, dataIgnoreYear, selection.year);
+  const data = filteredData();
+  const metrics = kpis(data);
   const doc = new jsPDF();
 
   doc.setFontSize(16);
@@ -312,6 +394,8 @@ function downloadPdfReport() {
   doc.text(`Total Revenue: € ${Math.round(metrics.totalRevenue).toLocaleString()}`, 10, 30);
   doc.text(`YoY Growth: ${metrics.yoy === null ? "N/A" : `${metrics.yoy.toFixed(2)}%`}`, 10, 38);
   doc.text(`MoM Growth: ${metrics.growth === null ? "N/A" : `${metrics.growth.toFixed(2)}%`}`, 10, 46);
+  doc.text(`YoY Growth: ${metrics.yoy.toFixed(2)}%`, 10, 38);
+  doc.text(`MoM Growth: ${metrics.growth.toFixed(2)}%`, 10, 46);
   doc.text(`Average Price Impact: ${metrics.priceImpactAvg.toFixed(2)}%`, 10, 54);
 
   doc.text("Project Snapshot:", 10, 65);
