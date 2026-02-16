@@ -4,6 +4,7 @@ A browser-based dashboard for the ROW sales team with no coding required for dai
 
 ## Features
 
+- Checkbox-based multi-selection filtering by **Region** and **Product**.
 - Multi-select filtering by **Region** and **Product**.
 - Year filter for slicing analysis periods.
 - KPI cards for:
@@ -20,6 +21,7 @@ A browser-based dashboard for the ROW sales team with no coding required for dai
   - Price impact by product
 - In-browser form to add/update project entries.
 - PDF report generation and download.
+- Data persistence via browser localStorage (entries with zero revenue are excluded).
 - Data persistence via browser localStorage.
 
 ## Run
