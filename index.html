@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bosch Power Solutions ROW Sales Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Bosch Power Solutions</p>
+        <h1>ROW Sales Performance Dashboard</h1>
+        <p class="subtitle">Region of World Sales Team | Real-time project and revenue intelligence</p>
+      </div>
+      <button id="downloadPdfBtn" class="btn secondary">Download PDF Report</button>
+    </header>
+
+    <main>
+      <section class="panel filters">
+        <h2>Filters & Data Management</h2>
+        <div class="filter-grid">
+          <div class="filter-group">
+            <label for="regionFilter">Region (Multi-select)</label>
+            <select id="regionFilter" multiple></select>
+          </div>
+          <div class="filter-group">
+            <label for="productFilter">Product (Multi-select)</label>
+            <select id="productFilter" multiple></select>
+          </div>
+          <div class="filter-group compact">
+            <label for="yearFilter">Year</label>
+            <select id="yearFilter"></select>
+          </div>
+          <button id="resetFiltersBtn" class="btn tertiary">Reset Filters</button>
+        </div>
+
+        <form id="projectForm" class="project-form">
+          <h3>Add / Update Project Detail</h3>
+          <div class="form-grid">
+            <input id="projectName" placeholder="Project name" required />
+            <input id="projectRegion" placeholder="Region" required />
+            <input id="projectProduct" placeholder="Product" required />
+            <input id="projectMonth" type="month" required />
+            <input id="projectRevenue" type="number" min="0" step="0.01" placeholder="Revenue (EUR)" required />
+            <input id="projectTarget" type="number" min="0" step="0.01" placeholder="Target (EUR)" required />
+            <input id="projectPriceImpact" type="number" step="0.01" placeholder="Price impact %" required />
+          </div>
+          <button type="submit" class="btn primary">Save Project Entry</button>
+          <p class="hint">Data is saved in your browser so the team can update without coding.</p>
+        </form>
+      </section>
+
+      <section class="kpi-grid" id="kpiGrid"></section>
+
+      <section class="chart-grid">
+        <article class="panel"><h3>Month-wise Revenue</h3><canvas id="monthlyChart"></canvas></article>
+        <article class="panel"><h3>QoQ Revenue Analysis</h3><canvas id="qoqChart"></canvas></article>
+        <article class="panel"><h3>Target vs Actual</h3><canvas id="targetChart"></canvas></article>
+        <article class="panel"><h3>Revenue Forecast (Next 3 Months)</h3><canvas id="forecastChart"></canvas></article>
+        <article class="panel"><h3>Price Impact Analysis (%)</h3><canvas id="priceImpactChart"></canvas></article>
+      </section>
+
+      <section class="panel">
+        <h3>Project Pipeline</h3>
+        <div class="table-wrap">
+          <table id="projectTable">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Region</th>
+                <th>Product</th>
+                <th>Month</th>
+                <th>Revenue (€)</th>
+                <th>Target (€)</th>
+                <th>Price Impact %</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
